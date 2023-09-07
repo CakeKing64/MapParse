@@ -8,10 +8,10 @@ namespace MapParse.Types
         public Vec3 Max { get; set; }
         public DynamicArray<Face> Faces { get; }
 
-        public float Width => Math.Abs((Max.X - Min.X));
+        public double Width => Math.Abs((Max.X - Min.X));
 
-        public float Height => Math.Abs((Max.Z - Min.Z));
-        public float Depth => Math.Abs((Max.Y - Min.Y));
+        public double Height => Math.Abs((Max.Z - Min.Z));
+        public double Depth => Math.Abs((Max.Y - Min.Y));
         public Vec3 Center => new Vec3(Min.X + Width / 2, Min.Y + Depth / 2, Min.Z + Height / 2);
         public int NumberOfFaces => Faces.Length;
 

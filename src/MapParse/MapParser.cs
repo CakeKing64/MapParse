@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using MapParse.Types;
 using MapParse.Util;
@@ -78,13 +79,15 @@ namespace MapParse
         {
             Entity entity = new Entity();
 
+            index++;
+
             bool done = false;
             char token;
             while (!done)
             {
                 token = content[index];
 
-                if (LookAhead(content, index) == Constants.QUOTATION_MARK)
+                if (PeekChar(content, index) == Constants.QUOTATION_MARK)
                 {
                     Property p = parseProperty(content, ref index);
                     entity.AddProperty(p);
@@ -92,7 +95,7 @@ namespace MapParse
                     continue;
                 }
 
-                if (LookAhead(content, index) == Constants.LEFT_BRACE)
+                if (PeekChar(content, index) == Constants.LEFT_BRACE)
                 {
                     Brush b = parseBrush(content, ref index);
                     entity.Brushes.Add(b);
@@ -100,7 +103,7 @@ namespace MapParse
                     continue;
                 }
 
-                if (LookAhead(content, index) == Constants.RIGHT_BRACE)
+                if (PeekChar(content, index) == Constants.RIGHT_BRACE)
                 {
                     done = true;
                     break;
@@ -115,48 +118,8 @@ namespace MapParse
         private static Property parseProperty(string content, ref int index)
         {
             Property p = new Property();
-
-            bool done = false;
-            bool parsedKey = false;
-            bool parsing = false;
-            char token;
-            sb.Length = 0;
-            while (!done)
-            {
-                token = content[index];
-
-                if (!parsing)
-                {
-                    if (LookAhead(content, index) == Constants.QUOTATION_MARK)
-                    {
-                        index++;
-                        parsing = true;
-                        sb.Length = 0;
-                    }
-                }
-                else
-                {
-                    sb.Append(token);
-                    if (LookAhead(content, index) == Constants.QUOTATION_MARK)
-                    {
-                        parsing = false;
-                        if (!parsedKey)
-                        {
-                            parsedKey = true;
-                            p.Key = sb.ToString();
-                            sb.Length = 0;
-                        }
-                        else
-                        {
-                            p.Value = sb.ToString();
-                            done = true;
-                            break;
-                        }
-                    }
-                }
-
-                index++;
-            }
+            p.Key = GetString(content, ref index);
+            p.Value = GetString(content, ref index);
 
             return p;
         }
@@ -165,36 +128,12 @@ namespace MapParse
         {
             Brush b = new Brush();
 
-            bool done = false;
-            bool parsing = false;
-            char token;
-            while (!done)
+            while (PeekChar(content, index) != Constants.RIGHT_BRACE)
             {
-                token = content[index];
-                char lookAhead = LookAhead(content, index);
+                SkipChar(content, ref index); //  Skip the {
 
-                if (!parsing)
-                {
-                    if (LookAhead(content, index) == Constants.LEFT_BRACE || token == Constants.SPACE)
-                    {
-                        parsing = true;
-                        continue;
-                    }
-
-                    if (LookAhead(content, index) == Constants.RIGHT_BRACE)
-                    {
-                        done = true;
-                        break;
-                    }
-                }
-                else
-                {
-                    Face f = parseFace(content, ref index);
-                    b.Faces.Add(f);
-                    parsing = false;
-                }
-
-                index++;
+                Face f = parseFace(content, ref index);
+                b.Faces.Add(f);
             }
 
             b.GeneratePolys();
@@ -213,121 +152,39 @@ namespace MapParse
             return b;
         }
 
+        private static void StringDebug(string content, int index)
+        {
+            for (int i = index; i < content.Length; i++)
+            {
+                Console.Write(content[i]);
+            }
+
+        }
+
         private static Face parseFace(string content, ref int index)
         {
             Face f = new Face();
             Vec3[] plane = new Vec3[3];
             string texture = "";
             Plane[] texAxis = new Plane[2];
-            float rotation = 0F;
-            float[] scale = new float[2];
+            double rotation = 0F;
+            double[] scale = new double[2];
 
-            FaceParseState state = FaceParseState.PLANE;
-            bool done = false;
-            char token;
-            while (!done)
+            for (int i = 0; i < 3; i++)
             {
-                token = content[index];
-                char lookAhead = LookAhead(content, index);
-
-                if (state == FaceParseState.PLANE)
-                {
-                    for (int i = 0; i < 3; i++)
-                    {
-                        plane[i] = parseVec3(content, ref index);
-                        if (i == 2)
-                        {
-                            // we're at the end of the plane definition, so get ready to parse the texture
-                            state = FaceParseState.TEXTURE;
-                            sb.Length = 0;
-                        }
-                    }
-                }
-                else if (state == FaceParseState.TEXTURE)
-                {
-                    if (token == Constants.SPACE)
-                    {
-                        index++;
-                        continue;
-                    }
-
-                    if (LookAhead(content, index) == Constants.SPACE)
-                    {
-                        sb.Append(token);
-                        // get ready to parse the texture axis
-                        texture = sb.ToString();
-                        sb.Length = 0;
-                        state = FaceParseState.TEXAXIS;
-                    }
-                    else
-                    {
-                        sb.Append(token);
-                    }
-                }
-                else if (state == FaceParseState.TEXAXIS)
-                {
-                    for (int i = 0; i < 2; i++)
-                    {
-                        texAxis[i] = parsePlane(content, ref index);
-                        if (i == 1)
-                        {
-                            // get ready to parse texture rotation
-                            state = FaceParseState.ROTATION;
-                            sb.Length = 0;
-                        }
-                    }
-                }
-                else if (state == FaceParseState.ROTATION)
-                {
-                    if (token == Constants.RIGHT_BRACKET)
-                    {
-                        index++;
-                        continue;
-                    }
-
-                    if (LookAhead(content, index) != Constants.SPACE)
-                    {
-                        sb.Append(token);
-                    }
-                    else
-                    {
-                        rotation = float.Parse(sb.ToString());
-                        sb.Length = 0;
-                        state = FaceParseState.SCALEX;
-                    }
-                }
-                else if (state == FaceParseState.SCALEX)
-                {
-                    if (LookAhead(content, index) != Constants.SPACE)
-                    {
-                        sb.Append(token);
-                    }
-                    else
-                    {
-                        scale[0] = float.Parse(sb.ToString());
-                        sb.Length = 0;
-                        state = FaceParseState.SCALEY;
-                    }
-                }
-                else if (state == FaceParseState.SCALEY)
-                {
-                    if (LookAhead(content, index) != Constants.SPACE &&
-                        LookAhead(content, index) != Constants.CARRAIGE_RETURN &&
-                        LookAhead(content, index) != Constants.NEWLINE)
-                    {
-                        sb.Append(token);
-                    }
-                    else
-                    {
-                        scale[1] = float.Parse(sb.ToString());
-                        sb.Length = 0;
-                        done = true;
-                        break;
-                    }
-                }
-
-                index++;
+                plane[i] = parseVec3(content, ref index);
             }
+
+            texture = GetString(content, ref index);
+            
+            for(int i = 0; i < 2;i++)
+            {
+                texAxis[i] = parsePlane(content, ref index);
+            }
+
+            rotation = double.Parse(GetString(content, ref index));
+            scale[0] = double.Parse(GetString(content, ref index));
+            scale[1] = double.Parse(GetString(content, ref index));
 
             f.P = new Plane(plane[0], plane[1], plane[2]);
             f.Texture = texture;
@@ -340,72 +197,12 @@ namespace MapParse
         private static Plane parsePlane(string content, ref int index)
         {
             Plane p = new Plane();
-
-            sb.Length = 0;
-
-            PlaneParseState state = PlaneParseState.N_X;
-            bool done = false;
-            bool parsing = false;
-            char token;
-            index++;
-            while (!done)
-            {
-                token = content[index];
-                char lookAhead = LookAhead(content, index);
-
-                if (!parsing)
-                {
-                    if (token == Constants.LEFT_BRACKET || LookAhead(content, index) == Constants.LEFT_BRACKET)
-                    {
-                        index++;
-                        continue;
-                    }
-
-                    if (LookAhead(content, index) != Constants.SPACE)
-                    {
-                        parsing = true;
-                    }
-
-                    if (LookAhead(content, index) == Constants.RIGHT_BRACKET)
-                    {
-                        done = true;
-                        break;
-                    }
-                }
-                else
-                {
-                    if (LookAhead(content, index) != Constants.SPACE)
-                    {
-                        sb.Append(token);
-                    }
-                    else
-                    {
-                        switch (state)
-                        {
-                            case PlaneParseState.N_X:
-                                p.Normal.X = float.Parse(sb.ToString());
-                                state = PlaneParseState.N_Y;
-                                break;
-                            case PlaneParseState.N_Y:
-                                p.Normal.Z = float.Parse(sb.ToString());
-                                state = PlaneParseState.N_Z;
-                                break;
-                            case PlaneParseState.N_Z:
-                                p.Normal.Y = float.Parse(sb.ToString());
-                                state = PlaneParseState.DISTANCE;
-                                break;
-                            case PlaneParseState.DISTANCE:
-                                p.Distance = float.Parse(sb.ToString());
-                                parsing = false;
-                                break;
-                        }
-
-                        sb.Length = 0;
-                    }
-                }
-
-                index++;
-            }
+            SkipChar(content, ref index);
+            p.Normal.X = double.Parse(GetString(content, ref index));
+            p.Normal.Z = double.Parse(GetString(content, ref index));
+            p.Normal.Y = double.Parse(GetString(content, ref index));
+            p.Distance = double.Parse(GetString(content, ref index));
+            SkipChar(content, ref index);
 
             return p;
         }
@@ -414,72 +211,109 @@ namespace MapParse
         {
             Vec3 vec3 = new Vec3();
 
-            sb.Length = 0;
-
-            Vec3ParseState state = Vec3ParseState.X;
-            bool done = false;
-            bool parsing = false;
-            char token;
-
-            while (!done)
-            {
-                token = content[index];
-                char lookAhead = LookAhead(content, index);
-
-                if (!parsing)
-                {
-                    if (token == Constants.LEFT_PARENTHESIS || token == Constants.NEWLINE ||
-                        token == Constants.CARRAIGE_RETURN || lookAhead == Constants.SPACE
-                        || lookAhead == Constants.LEFT_PARENTHESIS || token == Constants.LEFT_BRACE)
-                    {
-                        index++;
-                        continue;
-                    }
-
-                    if (LookAhead(content, index) != Constants.SPACE)
-                    {
-                        parsing = true;
-                    }
-
-                    if (LookAhead(content, index) == Constants.RIGHT_PARENTHESIS)
-                    {
-                        done = true;
-                    }
-                }
-                else
-                {
-                    if (LookAhead(content, index) != Constants.SPACE)
-                    {
-                        sb.Append(token);
-                    }
-                    else
-                    {
-                        switch (state)
-                        {
-                            case Vec3ParseState.X:
-                                vec3.X = float.Parse(sb.ToString());
-                                state = Vec3ParseState.Y;
-                                break;
-                            case Vec3ParseState.Y:
-                                vec3.Z = float.Parse(sb.ToString());
-                                state = Vec3ParseState.Z;
-                                break;
-                            case Vec3ParseState.Z:
-                                vec3.Y = float.Parse(sb.ToString());
-                                parsing = false;
-                                break;
-                        }
-
-                        sb.Length = 0;
-                    }
-                }
-
-                index++;
-            }
+            SkipChar(content, ref index);
+            vec3.X = double.Parse(GetString(content, ref index));
+            vec3.Z = double.Parse(GetString(content, ref index));
+            vec3.Y = double.Parse(GetString(content, ref index));
+            SkipChar(content, ref index);
 
             return vec3;
         }
 
+
         private static char LookAhead(string content, int index) { return content[index + 1]; }
+
+
+        private static readonly Dictionary<char, string> EscapeCodes
+    = new Dictionary<char, string>
+    {
+                { '\'', "'" },
+                { '\"', "\"" },
+                { '\\', "\\" },
+                { '\n', "\n" },
+                { '\r', "\r" },
+                { '\t', "\t" },
+                { '\0', "\0" },
+    };
+        private static char PeekChar(string content, int index)
+        {
+            int index2 = index;
+            char c = content[index2];
+            while (char.IsWhiteSpace(c))
+            {
+                c = content[index2++];
+            }
+
+            Console.WriteLine("PeekChar() " + c);
+            return c;
+        }
+        private static void SkipChar(string content, ref int index)
+        {
+            char c = content[index];
+            while (char.IsWhiteSpace(c))
+            {
+                c = content[index++];
+            }
+
+            index++;
+
+            Console.WriteLine("SkipChar() " + c);
+        }
+        private static string GetString(string content, ref int index)
+        {
+            string str = "";
+            char c = content[index]; 
+            int qt = 0;
+
+            while (char.IsWhiteSpace(c))
+            {
+                c = content[index];
+                if (char.IsWhiteSpace(c))
+                    index++;
+            }
+
+            if (c != '\"' && c != '\'')
+            {
+                qt = 3;
+            }
+
+            while (qt != 2)
+            {
+                c = content[index++];
+
+                if (char.IsWhiteSpace(c) && qt == 3)
+                {
+                    qt = 2;
+                    continue;
+                }
+                // std::cout << c;
+                switch (c)
+                {
+                    case '"':
+                        qt++;
+                        continue;
+                    case '\\':
+                        {
+                            var escape = content[index++];
+                            string escapeC;
+
+                            if (EscapeCodes.TryGetValue(escape, out escapeC))
+                            {
+                                str += escapeC;
+                            }
+                            else
+                                str += escape;
+                            continue;
+                        }
+                    default:
+                        str += c;
+                        break;
+                }
+
+
+            }
+            Console.WriteLine("GetString() \"" + str + "\"");
+            return str;
+        }
     }
 }

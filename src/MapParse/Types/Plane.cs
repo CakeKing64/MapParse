@@ -70,16 +70,16 @@ namespace MapParse.Types
 
         public override string ToString() { return this.Normal.ToString() + ", D: " + this.Distance.ToString(); }
 
-        public float DistanceToPlane(Vec3 v)
+        public double DistanceToPlane(Vec3 v)
         {
-            return (float)(ParseUtils.RoundToSignificantDigits(Vec3.Dot(this.Normal, v), 5) +
+            return (double)(ParseUtils.RoundToSignificantDigits(Vec3.Dot(this.Normal, v), 5) +
                            ParseUtils.RoundToSignificantDigits(this.Distance, 5));
         }
 
         // calculate whether a point is in front, behind, or on the plane
         public PointClassification ClassifyPoint(Vec3 point)
         {
-            float distance = DistanceToPlane(point);
+            double distance = DistanceToPlane(point);
             if (distance > Constants.Epsilon)
             {
                 return PointClassification.FRONT;
@@ -96,7 +96,7 @@ namespace MapParse.Types
         // based on "Intersection of 3 Planes" http://geomalgorithms.com/a05-_intersect-1.html
         public bool GetIntersection(Plane a, Plane b, ref Vec3 intersection)
         {
-            float denom = Vec3.Dot(this.Normal, Vec3.Cross(a.Normal, b.Normal));
+            double denom = Vec3.Dot(this.Normal, Vec3.Cross(a.Normal, b.Normal));
             if (Math.Abs(denom) < Constants.Epsilon)
             {
                 return false;
@@ -108,11 +108,11 @@ namespace MapParse.Types
             return true;
         }
 
-        public bool GetIntersection(Vec3 start, Vec3 end, ref Vertex intersection, ref float percentage)
+        public bool GetIntersection(Vec3 start, Vec3 end, ref Vertex intersection, ref double percentage)
         {
             Vec3 direction = end - start;
-            float num;
-            float denom;
+            double num;
+            double denom;
 
             direction.Normalize();
 

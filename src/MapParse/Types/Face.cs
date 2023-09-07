@@ -4,16 +4,16 @@
     {
         public Plane P { get; set; }
         public Plane[] TexAxis { get; set; }
-        public float[] TexScale { get; set; }
+        public double[] TexScale { get; set; }
         public string Texture { get; set; }
-        public float Rotation { get; set; }
+        public double Rotation { get; set; }
         public DynamicArray<Poly> Polys { get; set; }
 
         public Face()
         {
             P = new Plane();
             TexAxis = new Plane[2];
-            TexScale = new float[2];
+            TexScale = new double[2];
             Texture = "";
             Rotation = 0F;
             Polys = new DynamicArray<Poly>();

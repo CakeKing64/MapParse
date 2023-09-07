@@ -91,11 +91,11 @@ namespace MapParse.Types
         {
             bool front = false;
             bool back = false;
-            float distance;
+            double distance;
 
             for (int i = 0; i < poly.NumberOfVertices; i++)
             {
-                distance = Vec3.Dot(poly.P.Normal, poly.Verts[i].P) + (float)poly.P.Distance;
+                distance = Vec3.Dot(poly.P.Normal, poly.Verts[i].P) + (double)poly.P.Distance;
                 if (distance > 0.001)
                 {
                     if (back)
@@ -184,7 +184,7 @@ namespace MapParse.Types
                 if (!ignore && pointClassification[i] != pointClassification[iNext])
                 {
                     Vertex v = null; // new vertex made by splitting
-                    float p = 0;     // percentage between the 2 points
+                    double p = 0;     // percentage between the 2 points
 
                     poly.P.GetIntersection(poly.Verts[i].P, poly.Verts[iNext].P, ref v, ref p);
                     v.Tex[0] = poly.Verts[iNext].Tex[0] - poly.Verts[i].Tex[0];
@@ -201,19 +201,19 @@ namespace MapParse.Types
             _back.CalculatePlane();
         }
 
-        public void CalculateTextureCoordinates(int texWidth, int texHeight, Plane[] texAxis, float[] texScale)
+        public void CalculateTextureCoordinates(int texWidth, int texHeight, Plane[] texAxis, double[] texScale)
         {
             for (int i = 0; i < NumberOfVertices; i++)
             {
-                float u;
-                float v;
+                double u;
+                double v;
 
                 u = (((Verts[i].P.X * texAxis[0].Normal.X + Verts[i].P.Z * texAxis[0].Normal.Z +
                        Verts[i].P.Y * texAxis[0].Normal.Y) / texWidth) / texScale[0]) +
-                    ((float)texAxis[0].Distance / texWidth);
+                    ((double)texAxis[0].Distance / texWidth);
                 v = (((Verts[i].P.X * texAxis[1].Normal.X + Verts[i].P.Z * texAxis[1].Normal.Z +
                        Verts[i].P.Y * texAxis[1].Normal.Y) / texHeight) / texScale[1]) +
-                    ((float)texAxis[1].Distance / texHeight);
+                    ((double)texAxis[1].Distance / texHeight);
 
                 Verts[i].Tex[0] = u;
                 Verts[i].Tex[1] = v;
@@ -238,20 +238,20 @@ namespace MapParse.Types
             // calculate coordinate nearest to 0
             if (doU || doV)
             {
-                float nearestU = 0;
-                float u = Verts[0].Tex[0];
-                float nearestV = 0;
-                float v = Verts[0].Tex[1];
+                double nearestU = 0;
+                double u = Verts[0].Tex[0];
+                double nearestV = 0;
+                double v = Verts[0].Tex[1];
 
                 if (doU)
                 {
                     if (u > 1)
                     {
-                        nearestU = (float)Math.Floor(u);
+                        nearestU = Math.Floor(u);
                     }
                     else
                     {
-                        nearestU = (float)Math.Ceiling(u);
+                        nearestU = Math.Ceiling(u);
                     }
                 }
 
@@ -259,11 +259,11 @@ namespace MapParse.Types
                 {
                     if (v > 1)
                     {
-                        nearestU = (float)Math.Floor(v);
+                        nearestU = Math.Floor(v);
                     }
                     else
                     {
-                        nearestU = (float)Math.Ceiling(v);
+                        nearestU = Math.Ceiling(v);
                     }
                 }
 
@@ -276,11 +276,11 @@ namespace MapParse.Types
                         {
                             if (u > 1)
                             {
-                                nearestU = (float)Math.Floor(u);
+                                nearestU = (double)Math.Floor(u);
                             }
                             else
                             {
-                                nearestU = (float)Math.Ceiling(u);
+                                nearestU = (double)Math.Ceiling(u);
                             }
                         }
                     }
@@ -292,11 +292,11 @@ namespace MapParse.Types
                         {
                             if (v > 1)
                             {
-                                nearestV = (float)Math.Floor(v);
+                                nearestV = (double)Math.Floor(v);
                             }
                             else
                             {
-                                nearestV = (float)Math.Ceiling(v);
+                                nearestV = (double)Math.Ceiling(v);
                             }
                         }
                     }
@@ -327,7 +327,7 @@ namespace MapParse.Types
             {
                 Vec3 a = Vec3.zero;
                 Plane p;
-                float smallestAngle = -1;
+                double smallestAngle = -1;
                 int smallest = -1;
 
                 a = Verts[i].P - center;
@@ -339,7 +339,7 @@ namespace MapParse.Types
                     if (p.ClassifyPoint(Verts[j].P) != PointClassification.BACK)
                     {
                         Vec3 b = Vec3.zero;
-                        float angle;
+                        double angle;
 
                         b = Verts[j].P - center;
                         b.Normalize();
@@ -383,7 +383,7 @@ namespace MapParse.Types
         public bool CalculatePlane()
         {
             Vec3 centerOfMass = Vec3.zero;
-            float magnitude;
+            double magnitude;
             int i;
             int j;
 
