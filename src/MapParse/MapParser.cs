@@ -135,6 +135,7 @@ namespace MapParse
                 Face f = parseFace(content, ref index);
                 b.Faces.Add(f);
             }
+            SkipChar(content, ref index);
 
             b.GeneratePolys();
             for (int i = 0; i < b.NumberOfFaces; i++)
@@ -244,7 +245,7 @@ namespace MapParse
                 c = content[index2++];
             }
 
-            Console.WriteLine("PeekChar() " + c);
+            //Console.WriteLine("PeekChar() " + c);
             return c;
         }
         private static void SkipChar(string content, ref int index)
@@ -257,7 +258,7 @@ namespace MapParse
 
             index++;
 
-            Console.WriteLine("SkipChar() " + c);
+            //Console.WriteLine("SkipChar() " + c);
         }
         private static string GetString(string content, ref int index)
         {
@@ -312,7 +313,7 @@ namespace MapParse
 
 
             }
-            Console.WriteLine("GetString() \"" + str + "\"");
+            //Console.WriteLine("GetString() \"" + str + "\"");
             return str;
         }
     }
